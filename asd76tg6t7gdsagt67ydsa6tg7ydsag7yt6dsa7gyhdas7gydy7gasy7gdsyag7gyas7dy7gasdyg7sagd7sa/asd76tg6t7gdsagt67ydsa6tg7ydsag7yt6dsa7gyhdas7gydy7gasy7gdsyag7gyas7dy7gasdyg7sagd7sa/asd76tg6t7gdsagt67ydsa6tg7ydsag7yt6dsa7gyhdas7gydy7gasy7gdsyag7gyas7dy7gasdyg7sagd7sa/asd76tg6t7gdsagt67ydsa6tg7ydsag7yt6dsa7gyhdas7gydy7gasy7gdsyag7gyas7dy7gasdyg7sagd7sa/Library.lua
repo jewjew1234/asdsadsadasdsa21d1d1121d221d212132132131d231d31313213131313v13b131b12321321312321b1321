@@ -1,6 +1,8 @@
 --[[
-    Merged script with corrected FontFace usage.
-    All UI elements now use custom font via FontFace property.
+    Fully fixed merged library.
+    - Uses FontFace for custom fonts
+    - Library:Create now safe against non-table Properties
+    - CreateWindow robustly handles both argument styles
 ]]
 
 local InputService = game:GetService('UserInputService');
@@ -28,7 +30,7 @@ local Options = {};
 getgenv().Toggles = Toggles;
 getgenv().Options = Options;
 
--- ====== UPDATED COLORS TO MATCH SECOND SCRIPT ======
+-- ====== UPDATED COLORS ======
 local Library = {
     Registry = {};
     RegistryMap = {};
@@ -36,14 +38,14 @@ local Library = {
     HudRegistry = {};
 
     FontColor = Color3.fromRGB(200, 200, 200);
-    MainColor = Color3.fromRGB(9, 9, 9);        -- window background
-    BackgroundColor = Color3.fromRGB(9, 9, 9);  -- same as main
-    AccentColor = Color3.fromRGB(139, 158, 252); -- digital framework accent
-    OutlineColor = Color3.fromRGB(40, 40, 40);   -- borders
+    MainColor = Color3.fromRGB(9, 9, 9);
+    BackgroundColor = Color3.fromRGB(9, 9, 9);
+    AccentColor = Color3.fromRGB(139, 158, 252);
+    OutlineColor = Color3.fromRGB(40, 40, 40);
     RiskColor = Color3.fromRGB(200, 50, 50),
 
     Black = Color3.new(0, 0, 0);
-    Font = nil,  -- will be set to the custom font later
+    Font = nil,
 
     OpenedFrames = {};
     DependencyBoxes = {};
@@ -52,7 +54,7 @@ local Library = {
     ScreenGui = ScreenGui;
 };
 
--- ====== LOAD CUSTOM FONT (from second script) ======
+-- ====== LOAD CUSTOM FONT ======
 local function Register_Font(Name, Weight, Style, Asset)
     if not isfile(Asset.Id) then writefile(Asset.Id, Asset.Font) end
     if isfile(Name .. ".font") then delfile(Name .. ".font") end
@@ -77,7 +79,7 @@ local customFont = Font.new(Register_Font("ProggyClean", 200, "normal", {
 
 Library.Font = customFont;
 
--- ====== RAINBOW EFFECT (unchanged) ======
+-- ====== RAINBOW EFFECT ======
 local RainbowStep = 0
 local Hue = 0
 
@@ -98,7 +100,7 @@ table.insert(Library.Signals, RenderStepped:Connect(function(Delta)
     end
 end))
 
--- ====== HELPER FUNCTIONS (unchanged) ======
+-- ====== HELPER FUNCTIONS ======
 local function GetPlayersString()
     local PlayerList = Players:GetPlayers();
 
@@ -151,7 +153,12 @@ function Library:AttemptSave()
     end;
 end;
 
+-- ====== FIX: Safe Create ======
 function Library:Create(Class, Properties)
+    if type(Properties) ~= 'table' then
+        Properties = {};   -- Prevent "next" error
+    end
+
     local _Instance = Class;
 
     if type(Class) == 'string' then
@@ -179,7 +186,7 @@ end;
 function Library:CreateLabel(Properties, IsHud)
     local _Instance = Library:Create('TextLabel', {
         BackgroundTransparency = 1;
-        FontFace = Library.Font;  -- FIXED: use FontFace instead of Font
+        FontFace = Library.Font;   -- Fixed: use FontFace
         TextColor3 = Library.FontColor;
         TextSize = 16;
         TextStrokeTransparency = 0;
@@ -602,7 +609,7 @@ do
             BackgroundTransparency = 1;
             Position = UDim2.new(0, 5, 0, 0);
             Size = UDim2.new(1, -5, 1, 0);
-            FontFace = Library.Font;  -- FIXED
+            FontFace = Library.Font;
             PlaceholderColor3 = Color3.fromRGB(190, 190, 190);
             PlaceholderText = 'Hex color',
             Text = '#FFFFFF',
@@ -626,7 +633,7 @@ do
             Text = '255, 255, 255',
             PlaceholderText = 'RGB color',
             TextColor3 = Library.FontColor,
-            FontFace = Library.Font  -- FIXED
+            FontFace = Library.Font
         });
 
         local TransparencyBoxOuter, TransparencyBoxInner, TransparencyCursor;
@@ -1720,7 +1727,7 @@ do
             Position = UDim2.fromOffset(0, 0),
             Size = UDim2.fromScale(5, 1),
 
-            FontFace = Library.Font;  -- FIXED
+            FontFace = Library.Font;
             PlaceholderColor3 = Color3.fromRGB(190, 190, 190);
             PlaceholderText = Info.Placeholder or '';
 
@@ -2697,7 +2704,7 @@ do
     end;
 end;
 
--- ====== HUD ELEMENTS (Notifications, Watermark, Keybind display) – restyled ======
+-- ====== HUD ELEMENTS (Notifications, Watermark, Keybind display) ======
 do
     Library.NotificationArea = Library:Create('Frame', {
         BackgroundTransparency = 1;
@@ -2949,16 +2956,16 @@ function Library:Notify(Text, Time)
     end);
 end;
 
--- ====== WINDOW CREATION (restyled) ======
+-- ====== WINDOW CREATION ======
 function Library:CreateWindow(...)
-    local Arguments = { ... }
+    local args = { ... }
     local Config = { AnchorPoint = Vector2.zero }
 
-    if type(...) == 'table' then
-        Config = ...;
+    if #args == 1 and type(args[1]) == 'table' then
+        Config = args[1]
     else
-        Config.Title = Arguments[1]
-        Config.AutoShow = Arguments[2] or false;
+        Config.Title = args[1] or 'No title'
+        Config.AutoShow = args[2] or false
     end
 
     if type(Config.Title) ~= 'string' then Config.Title = 'No title' end
