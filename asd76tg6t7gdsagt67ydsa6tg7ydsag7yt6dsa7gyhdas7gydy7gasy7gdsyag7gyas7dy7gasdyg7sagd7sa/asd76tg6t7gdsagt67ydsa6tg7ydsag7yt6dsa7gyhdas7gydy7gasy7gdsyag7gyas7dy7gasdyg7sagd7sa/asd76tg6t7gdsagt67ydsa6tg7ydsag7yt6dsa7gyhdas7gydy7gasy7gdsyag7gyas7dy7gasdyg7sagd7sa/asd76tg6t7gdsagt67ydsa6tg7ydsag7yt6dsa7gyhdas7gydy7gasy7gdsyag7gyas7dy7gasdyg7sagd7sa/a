@@ -9,7 +9,6 @@ local PlaceId = game.PlaceId
 local JobId = game.JobId
 
 local TWEEN_SPEED = 35
-local enabled = true
 
 -- Roblox Notification
 local function notify(title, message)
@@ -60,9 +59,9 @@ local function teleportToLobby()
     end
 end
 
--- ServerHop - Only joins servers with 10 or fewer players
+-- ServerHop - ONLY joins servers with maxPlayers <= 10
 local function serverHop()
-    notify("Server Hop", "Searching for servers with ≤10 players...")
+    notify("Server Hop", "Searching for small servers (max 10 players)...")
     
     for attempt = 1, 10 do
         local servers = {}
@@ -76,9 +75,9 @@ local function serverHop()
             if body and body.data then
                 for _, v in ipairs(body.data) do
                     if type(v) == "table" 
-                       and tonumber(v.playing) 
                        and tonumber(v.maxPlayers) 
-                       and v.playing <= 10                    -- ← Only ≤10 players
+                       and v.maxPlayers <= 10                    -- Only servers with max 10 players
+                       and tonumber(v.playing) 
                        and v.playing < v.maxPlayers 
                        and v.id ~= JobId then
                         table.insert(servers, v.id)
@@ -93,18 +92,18 @@ local function serverHop()
                     loadstring(game:HttpGet("https://raw.githubusercontent.com/jewjew1234/asdsadsadasdsa21d1d1121d221d212132132131d231d31313213131313v13b131b12321321312321b1321/refs/heads/main/asd76tg6t7gdsagt67ydsa6tg7ydsag7yt6dsa7gyhdas7gydy7gasy7gdsyag7gyas7dy7gasdyg7sagd7sa/asd76tg6t7gdsagt67ydsa6tg7ydsag7yt6dsa7gyhdas7gydy7gasy7gdsyag7gyas7dy7gasdyg7sagd7sa/asd76tg6t7gdsagt67ydsa6tg7ydsag7yt6dsa7gyhdas7gydy7gasy7gdsyag7gyas7dy7gasdyg7sagd7sa/asd76tg6t7gdsagt67ydsa6tg7ydsag7yt6dsa7gyhdas7gydy7gasy7gdsyag7gyas7dy7gasdyg7sagd7sa/a"))()
                 ]])
             end
-            notify("Server Hop", "Found server with " .. #servers .. " options! Hopping...")
+            notify("Server Hop", "Found " .. #servers .. " small server(s)! Hopping...")
             TeleportService:TeleportToPlaceInstance(PlaceId, servers[math.random(1, #servers)], LocalPlayer)
             return
         end
 
         if attempt < 10 then
-            notify("Server Hop", "No low-player servers found, retrying... (" .. attempt .. "/10)")
+            notify("Server Hop", "No small servers found, retrying... (" .. attempt .. "/10)")
             task.wait(0.5)
         end
     end
     
-    notify("Server Hop", "Failed to find a server with ≤10 players after 10 attempts.")
+    notify("Server Hop", "Failed to find a server with maxPlayers ≤10 after 10 attempts.")
 end
 
 -- Teleport Detection ONLY near CoinContainer
