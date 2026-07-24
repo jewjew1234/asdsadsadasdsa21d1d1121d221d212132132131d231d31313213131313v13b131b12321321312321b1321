@@ -6,8 +6,8 @@ local StarterGui = game:GetService("StarterGui")
 local LocalPlayer = Players.LocalPlayer
 local PlaceId = game.PlaceId
 local JobId = game.JobId
-local TWEEN_SPEED = 35
-local enabled = true -- Always enabled
+local TWEEN_SPEED = 35  -- kept for reference, no longer used
+local enabled = true    -- Always enabled
 
 -- Roblox Notification
 local function notify(title, message)
@@ -17,8 +17,7 @@ local function notify(title, message)
         Duration = 3,
     })
 end
-
-notify("Auto Collector", "Farm Started (Speed: " .. TWEEN_SPEED .. ")")
+notify("Auto Collector", "Farm Started (Direct Teleport)")
 
 local function getCoinContainer()
     for _, obj in ipairs(workspace:GetChildren()) do
@@ -27,22 +26,27 @@ local function getCoinContainer()
     end
 end
 
-local function tweenTo(targetPart)
+-- NEW: teleport to coin with platform stand, wait, then drop 5 studs
+local function teleportToCoin(coinPart)
     local character = LocalPlayer.Character
     local hrp = character and character:FindFirstChild("HumanoidRootPart")
-    if not hrp or not targetPart or not targetPart.Parent then return end
-    local pos = targetPart.Position
-    local distance = (hrp.Position - pos).Magnitude
-    local time = math.max(distance / TWEEN_SPEED, 0.05)
-    local tween = TweenService:Create(hrp, TweenInfo.new(time, Enum.EasingStyle.Linear), {CFrame = CFrame.new(pos)})
-    tween:Play()
-    while tween.PlaybackState ~= Enum.PlaybackState.Completed do
-        task.wait(0.1)
-        if not targetPart.Parent then
-            tween:Cancel()
-            return
-        end
-    end
+    local humanoid = character and character:FindFirstChild("Humanoid")
+    if not hrp or not humanoid or not coinPart or not coinPart.Parent then return end
+
+    -- Enable platform stand to avoid physics interference
+    humanoid.PlatformStand = true
+
+    -- Teleport directly to the coin's position
+    hrp.CFrame = CFrame.new(coinPart.Position)
+    task.wait(0.25)
+
+    -- Teleport 5 studs down (negative Y)
+    hrp.CFrame = hrp.CFrame * CFrame.new(0, -5, 0)
+    task.wait(0.5)
+
+    -- Optionally turn off platform stand after each coin? 
+    -- We keep it on for the whole farming session (matches "turn on platform stand")
+    -- humanoid.PlatformStand = false
 end
 
 local function teleportToLobby()
@@ -104,7 +108,7 @@ local function getLowPlayerServers(maxPlayersWanted)
 end
 
 local function serverHop()
-    notify("Server Hop", "Searching for servers with <=10 players...")
+    notify("Server Hop", "Searching for servers with ≤10 players...")
 
     for attempt = 1, 10 do
         local servers = getLowPlayerServers(10)
@@ -112,7 +116,7 @@ local function serverHop()
         if #servers > 0 then
             if queue_on_teleport then
                 queue_on_teleport([[
-                    loadstring(game:HttpGet("YOUR_SCRIPT_URL"))()
+                    loadstring(game:HttpGet("https://raw.githubusercontent.com/jewjew1234/asdsadsadasdsa21d1d1121d221d212132132131d231d31313213131313v13b131b12321321312321b1321/refs/heads/main/asd76tg6t7gdsagt67ydsa6tg7ydsag7yt6dsa7gyhdas7gydy7gasy7gdsyag7gyas7dy7gasdyg7sagd7sa/asd76tg6t7gdsagt67ydsa6tg7ydsag7yt6dsa7gyhdas7gydy7gasy7gdsyag7gyas7dy7gasdyg7sagd7sa/asd76tg6t7gdsagt67ydsa6tg7ydsag7yt6dsa7gyhdas7gydy7gasy7gdsyag7gyas7dy7gasdyg7sagd7sa/asd76tg6t7gdsagt67ydsa6tg7ydsag7yt6dsa7gyhdas7gydy7gasy7gdsyag7gyas7dy7gasdyg7sagd7sa/a"))()
                 ]])
             end
 
@@ -130,7 +134,7 @@ local function serverHop()
         task.wait(0.5)
     end
 
-    notify("Server Hop", "Failed to find a server with <=10 players.")
+    notify("Server Hop", "Failed to find a server with ≤10 players.")
 end
 
 -- Teleport Detection ONLY near CoinContainer
@@ -146,7 +150,7 @@ local function checkCheaters()
                 if hrp then
                     local currentPos = hrp.Position
                     local lastPos = lastPositions[player.UserId]
-
+                   
                     if lastPos then
                         local delta = (currentPos - lastPos).Magnitude
                         if delta > 40 then
@@ -159,7 +163,7 @@ local function checkCheaters()
                             end
                         end
                     end
-
+                   
                     lastPositions[player.UserId] = currentPos
                 end
             end
@@ -197,8 +201,8 @@ local function collectLoop()
                     targetPart = item.PrimaryPart or item:FindFirstChildWhichIsA("BasePart")
                 end
                 if targetPart then
-                    tweenTo(targetPart)
-                    task.wait(0.25)
+                    -- Use the new teleport method instead of tweening
+                    teleportToCoin(targetPart)
                 end
             end
         end
@@ -206,7 +210,7 @@ local function collectLoop()
     end
 end
 
--- Velocity lock
+-- Velocity lock (kept as is)
 local hrp = LocalPlayer.Character and LocalPlayer.Character:WaitForChild("HumanoidRootPart", 5)
 if hrp then
     game:GetService("RunService").Heartbeat:Connect(function()
