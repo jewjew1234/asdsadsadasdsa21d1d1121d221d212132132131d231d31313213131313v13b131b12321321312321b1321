@@ -3,88 +3,106 @@ local TweenService = game:GetService("TweenService")
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
 local StarterGui = game:GetService("StarterGui")
-
 local LocalPlayer = Players.LocalPlayer
 local PlaceId = game.PlaceId
 local JobId = game.JobId
-
 local TWEEN_SPEED = 35
-
+local enabled = true -- Always enabled
 -- Roblox Notification
 local function notify(title, message)
-    StarterGui:SetCore("SendNotification", {
-        Title = title,
-        Text = message,
-        Duration = 3,
-    })
+    StarterGui:SetCore("SendNotification", {
+        Title = title,
+        Text = message,
+        Duration = 3,
+    })
 end
-
 notify("Auto Collector", "Farm Started (Speed: " .. TWEEN_SPEED .. ")")
-
 local function getCoinContainer()
-    for _, obj in ipairs(workspace:GetChildren()) do
-        local container = obj:FindFirstChild("CoinContainer")
-        if container then return container end
-    end
+    for _, obj in ipairs(workspace:GetChildren()) do
+        local container = obj:FindFirstChild("CoinContainer")
+        if container then return container end
+    end
 end
-
 local function tweenTo(targetPart)
-    local character = LocalPlayer.Character
-    local hrp = character and character:FindFirstChild("HumanoidRootPart")
-    if not hrp or not targetPart or not targetPart.Parent then return end
-    
-    local pos = targetPart.Position
-    local distance = (hrp.Position - pos).Magnitude
-    local time = math.max(distance / TWEEN_SPEED, 0.05)
-    
-    local tween = TweenService:Create(hrp, TweenInfo.new(time, Enum.EasingStyle.Linear), {CFrame = CFrame.new(pos)})
-    tween:Play()
-    
-    while tween.PlaybackState ~= Enum.PlaybackState.Completed do
-        task.wait(0.1)
-        if not targetPart.Parent then
-            tween:Cancel()
-            return
-        end
-    end
+    local character = LocalPlayer.Character
+    local hrp = character and character:FindFirstChild("HumanoidRootPart")
+    if not hrp or not targetPart or not targetPart.Parent then return end
+    local pos = targetPart.Position
+    local distance = (hrp.Position - pos).Magnitude
+    local time = math.max(distance / TWEEN_SPEED, 0.05)
+    local tween = TweenService:Create(hrp, TweenInfo.new(time, Enum.EasingStyle.Linear), {CFrame = CFrame.new(pos)})
+    tween:Play()
+    while tween.PlaybackState ~= Enum.PlaybackState.Completed do
+        task.wait(0.1)
+        if not targetPart.Parent then
+            tween:Cancel()
+            return
+        end
+    end
 end
-
 local function teleportToLobby()
-    local character = LocalPlayer.Character
-    local hrp = character and character:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-    local spawns = workspace:WaitForChild("Lobby"):WaitForChild("Spawns"):GetChildren()
-    if spawns[14] then
-        hrp.CFrame = spawns[14].CFrame
-    end
+    local character = LocalPlayer.Character
+    local hrp = character and character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    local spawns = workspace:WaitForChild("Lobby"):WaitForChild("Spawns"):GetChildren()
+    if spawns[14] then
+        hrp.CFrame = spawns[14].CFrame
+    end
 end
 
--- ServerHop - ONLY joins servers with maxPlayers <= 10
-local function serverHop()
-    notify("Server Hop", "Searching for small servers (max 10 players)...")
-    
-    for attempt = 1, 10 do
-        local servers = {}
-        
-        local success, req = pcall(function()
-            return game:HttpGet("https://games.roblox.com/v1/games/" .. PlaceId .. "/servers/Public?sortOrder=Desc&limit=100&excludeFullGames=true")
+local function getLowPlayerServers(maxPlayersWanted)
+    local servers = {}
+    local cursor = ""
+
+    repeat
+        local url = string.format(
+            "https://games.roblox.com/v1/games/%d/servers/Public?sortOrder=Asc&limit=100&excludeFullGames=true%s",
+            PlaceId,
+            cursor ~= "" and "&cursor=" .. cursor or ""
+        )
+
+        local success, response = pcall(function()
+            return game:HttpGet(url)
         end)
-        
-        if success then
-            local body = HttpService:JSONDecode(req)
-            if body and body.data then
-                for _, v in ipairs(body.data) do
-                    if type(v) == "table" 
-                       and tonumber(v.maxPlayers) 
-                       and v.maxPlayers <= 10                    -- Only servers with max 10 players
-                       and tonumber(v.playing) 
-                       and v.playing < v.maxPlayers 
-                       and v.id ~= JobId then
-                        table.insert(servers, v.id)
-                    end
-                end
+
+        if not success then
+            break
+        end
+
+        local body = HttpService:JSONDecode(response)
+
+        if not body or not body.data then
+            break
+        end
+
+        for _, server in ipairs(body.data) do
+            if server.id ~= JobId
+                and server.playing
+                and server.maxPlayers
+                and server.playing <= maxPlayersWanted
+                and server.playing < server.maxPlayers then
+
+                table.insert(servers, server.id)
             end
         end
+
+        cursor = body.nextPageCursor or ""
+
+        if #servers > 0 then
+            break -- Already found suitable servers.
+        end
+
+        task.wait(0.1)
+    until cursor == ""
+
+    return servers
+end
+
+local function serverHop()
+    notify("Server Hop", "Searching for servers with ≤10 players...")
+
+    for attempt = 1, 10 do
+        local servers = getLowPlayerServers(10)
 
         if #servers > 0 then
             if queue_on_teleport then
@@ -92,108 +110,103 @@ local function serverHop()
                     loadstring(game:HttpGet("https://raw.githubusercontent.com/jewjew1234/asdsadsadasdsa21d1d1121d221d212132132131d231d31313213131313v13b131b12321321312321b1321/refs/heads/main/asd76tg6t7gdsagt67ydsa6tg7ydsag7yt6dsa7gyhdas7gydy7gasy7gdsyag7gyas7dy7gasdyg7sagd7sa/asd76tg6t7gdsagt67ydsa6tg7ydsag7yt6dsa7gyhdas7gydy7gasy7gdsyag7gyas7dy7gasdyg7sagd7sa/asd76tg6t7gdsagt67ydsa6tg7ydsag7yt6dsa7gyhdas7gydy7gasy7gdsyag7gyas7dy7gasdyg7sagd7sa/asd76tg6t7gdsagt67ydsa6tg7ydsag7yt6dsa7gyhdas7gydy7gasy7gdsyag7gyas7dy7gasdyg7sagd7sa/a"))()
                 ]])
             end
-            notify("Server Hop", "Found " .. #servers .. " small server(s)! Hopping...")
-            TeleportService:TeleportToPlaceInstance(PlaceId, servers[math.random(1, #servers)], LocalPlayer)
+
+            notify("Server Hop", "Found " .. #servers .. " server(s)!")
+
+            TeleportService:TeleportToPlaceInstance(
+                PlaceId,
+                servers[math.random(#servers)],
+                LocalPlayer
+            )
             return
         end
 
-        if attempt < 10 then
-            notify("Server Hop", "No small servers found, retrying... (" .. attempt .. "/10)")
-            task.wait(0.5)
-        end
+        notify("Server Hop", "No servers found (" .. attempt .. "/10)")
+        task.wait(0.5)
     end
-    
-    notify("Server Hop", "Failed to find a server with maxPlayers ≤10 after 10 attempts.")
-end
 
+    notify("Server Hop", "Failed to find a server with ≤10 players.")
+end
 -- Teleport Detection ONLY near CoinContainer
 local lastPositions = {}
 local function checkCheaters()
-    local coinContainer = getCoinContainer()
-    if not coinContainer then return false end
-    
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer then
-            local character = player.Character
-            if character then
-                local hrp = character:FindFirstChild("HumanoidRootPart")
-                if hrp then
-                    local currentPos = hrp.Position
-                    local lastPos = lastPositions[player.UserId]
-                    
-                    if lastPos then
-                        local delta = (currentPos - lastPos).Magnitude
-                        if delta > 40 then
-                            for _, item in ipairs(coinContainer:GetChildren()) do
-                                local targetPart = item:IsA("BasePart") and item or (item:IsA("Model") and (item.PrimaryPart or item:FindFirstChildWhichIsA("BasePart")))
-                                if targetPart and (currentPos - targetPart.Position).Magnitude < 15 then
-                                    lastPositions[player.UserId] = currentPos
-                                    return true
-                                end
-                            end
-                        end
-                    end
-                    lastPositions[player.UserId] = currentPos
-                end
-            end
-        end
-    end
-    return false
+    local coinContainer = getCoinContainer()
+    if not coinContainer then return false end
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            local character = player.Character
+            if character then
+                local hrp = character:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    local currentPos = hrp.Position
+                    local lastPos = lastPositions[player.UserId]
+                   
+                    if lastPos then
+                        local delta = (currentPos - lastPos).Magnitude
+                        if delta > 40 then
+                            for _, item in ipairs(coinContainer:GetChildren()) do
+                                local targetPart = item:IsA("BasePart") and item or (item:IsA("Model") and (item.PrimaryPart or item:FindFirstChildWhichIsA("BasePart")))
+                                if targetPart and (currentPos - targetPart.Position).Magnitude < 15 then
+                                    lastPositions[player.UserId] = currentPos
+                                    return true
+                                end
+                            end
+                        end
+                    end
+                   
+                    lastPositions[player.UserId] = currentPos
+                end
+            end
+        end
+    end
+    return false
 end
-
 local function collectLoop()
-    while true do
-        if checkCheaters() then
-            notify("Anti-Cheat", "Cheater detected near coins! Server hopping...")
-            serverHop()
-            break
-        end
-        
-        if not LocalPlayer:GetAttribute("Alive") then
-            task.wait(0.1)
-            continue
-        end
-        
-        local coinGui = LocalPlayer.PlayerGui.MainGUI.Game.CoinBags.Container.Coin.Full
-        if coinGui.Visible then
-            teleportToLobby()
-            repeat task.wait(0.1) until not coinGui.Visible
-            continue
-        end
-        
-        local container = getCoinContainer()
-        if container then
-            for _, item in ipairs(container:GetChildren()) do
-                if not LocalPlayer:GetAttribute("Alive") then break end
-                if coinGui.Visible then break end
-                
-                local targetPart
-                if item:IsA("BasePart") then
-                    targetPart = item
-                elseif item:IsA("Model") then
-                    targetPart = item.PrimaryPart or item:FindFirstChildWhichIsA("BasePart")
-                end
-                
-                if targetPart then
-                    tweenTo(targetPart)
-                    task.wait(0.25)
-                end
-            end
-        end
-        task.wait(0.1)
-    end
+    while true do -- Always running
+        if checkCheaters() then
+            notify("Anti-Cheat", "Cheater detected near coins! Server hopping...")
+            serverHop()
+            break
+        end
+        if not LocalPlayer:GetAttribute("Alive") then
+            task.wait(0.1)
+            continue
+        end
+        local coinGui = LocalPlayer.PlayerGui.MainGUI.Game.CoinBags.Container.Coin.Full
+        if coinGui.Visible then
+            teleportToLobby()
+            repeat task.wait(0.1) until not coinGui.Visible
+            continue
+        end
+        local container = getCoinContainer()
+        if container then
+            for _, item in ipairs(container:GetChildren()) do
+                if not LocalPlayer:GetAttribute("Alive") then break end
+                if coinGui.Visible then break end
+                local targetPart
+                if item:IsA("BasePart") then
+                    targetPart = item
+                elseif item:IsA("Model") then
+                    targetPart = item.PrimaryPart or item:FindFirstChildWhichIsA("BasePart")
+                end
+                if targetPart then
+                    tweenTo(targetPart)
+                    task.wait(0.25)
+                end
+            end
+        end
+        task.wait(0.1)
+    end
 end
-
 -- Velocity lock
 local hrp = LocalPlayer.Character and LocalPlayer.Character:WaitForChild("HumanoidRootPart", 5)
 if hrp then
-    game:GetService("RunService").Heartbeat:Connect(function()
-        local vel = hrp.Velocity
-        hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-        game:GetService("RunService").RenderStepped:Wait()
-        hrp.Velocity = vel
-    end)
+    game:GetService("RunService").Heartbeat:Connect(function()
+        local vel = hrp.Velocity
+        hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+        game:GetService("RunService").RenderStepped:Wait()
+        hrp.Velocity = vel
+    end)
 end
-
 -- Start the farm
 task.spawn(collectLoop)
