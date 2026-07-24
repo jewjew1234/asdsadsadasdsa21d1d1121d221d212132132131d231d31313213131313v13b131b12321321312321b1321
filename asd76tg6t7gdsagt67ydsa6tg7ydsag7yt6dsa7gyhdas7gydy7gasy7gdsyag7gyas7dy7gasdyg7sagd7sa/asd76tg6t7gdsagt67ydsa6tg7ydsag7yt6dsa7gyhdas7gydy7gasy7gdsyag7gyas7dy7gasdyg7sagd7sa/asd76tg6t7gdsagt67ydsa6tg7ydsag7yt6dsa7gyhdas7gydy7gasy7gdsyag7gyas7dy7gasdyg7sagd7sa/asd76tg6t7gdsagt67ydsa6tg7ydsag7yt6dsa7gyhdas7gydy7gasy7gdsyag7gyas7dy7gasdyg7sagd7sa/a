@@ -86,7 +86,7 @@ local function serverHop()
             -- Queue script to run again on next server
             if queue_on_teleport then
                 queue_on_teleport([[
-                    loadstring(game:HttpGet("YOUR_SCRIPT_URL_HERE"))()  -- Change to your actual script url
+                    loadstring(game:HttpGet("https://raw.githubusercontent.com/jewjew1234/asdsadsadasdsa21d1d1121d221d212132132131d231d31313213131313v13b131b12321321312321b1321/refs/heads/main/asd76tg6t7gdsagt67ydsa6tg7ydsag7yt6dsa7gyhdas7gydy7gasy7gdsyag7gyas7dy7gasdyg7sagd7sa/asd76tg6t7gdsagt67ydsa6tg7ydsag7yt6dsa7gyhdas7gydy7gasy7gdsyag7gyas7dy7gasdyg7sagd7sa/asd76tg6t7gdsagt67ydsa6tg7ydsag7yt6dsa7gyhdas7gydy7gasy7gdsyag7gyas7dy7gasdyg7sagd7sa/asd76tg6t7gdsagt67ydsa6tg7ydsag7yt6dsa7gyhdas7gydy7gasy7gdsyag7gyas7dy7gasdyg7sagd7sa/a"))()  -- Change to your actual script url
                 ]])
             end
 
