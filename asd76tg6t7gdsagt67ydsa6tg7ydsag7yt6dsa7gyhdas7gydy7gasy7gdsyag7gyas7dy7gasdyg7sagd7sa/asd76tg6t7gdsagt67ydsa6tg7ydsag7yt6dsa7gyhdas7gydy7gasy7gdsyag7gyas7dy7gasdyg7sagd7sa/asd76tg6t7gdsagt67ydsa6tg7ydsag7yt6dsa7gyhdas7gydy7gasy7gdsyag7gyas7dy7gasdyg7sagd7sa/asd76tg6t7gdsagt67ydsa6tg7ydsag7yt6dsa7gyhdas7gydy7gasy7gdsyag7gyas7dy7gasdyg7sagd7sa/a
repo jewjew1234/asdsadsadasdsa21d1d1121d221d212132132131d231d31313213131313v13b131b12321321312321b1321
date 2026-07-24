@@ -1,4 +1,4 @@
-task.wait(3)
+task.wait(3) -- goat
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
