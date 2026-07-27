@@ -1,5 +1,5 @@
 task.wait(3)
-local detect = true
+local detect = getgenv().Detect 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local TeleportService = game:GetService("TeleportService")
@@ -90,7 +90,7 @@ local Character = LocalPlayer.Character
 local RootPart = Character and Character:WaitForChild("HumanoidRootPart")
 
 local function onCharacterAdded(char)
-    task.wait(0.5)
+    task.wait(1)
     enableNoclip(char)
     task.spawn(playAnimation)
     Character = char
@@ -387,16 +387,23 @@ local function getLowPlayerServers(maxPlayersWanted)
     return servers
 end
 
+local detect = getgenv().Detect or false
+
 local function serverHop()
-    notify("Server Hop", "Searching for servers with ≤10 players...")
+    notify("Server Hop", "Searching for servers with 10 players...")
+
     for attempt = 1, 10 do
         local servers = getLowPlayerServers(10)
+
         if #servers > 0 then
             if queue_on_teleport then
+                getgenv().Detect = detect
+
                 queue_on_teleport([[
                     loadstring(game:HttpGet("https://raw.githubusercontent.com/jewjew1234/asdsadsadasdsa21d1d1121d221d212132132131d231d31313213131313v13b131b12321321312321b1321/refs/heads/main/asd76tg6t7gdsagt67ydsa6tg7ydsag7yt6dsa7gyhdas7gydy7gasy7gdsyag7gyas7dy7gasdyg7sagd7sa/asd76tg6t7gdsagt67ydsa6tg7ydsag7yt6dsa7gyhdas7gydy7gasy7gdsyag7gyas7dy7gasdyg7sagd7sa/asd76tg6t7gdsagt67ydsa6tg7ydsag7yt6dsa7gyhdas7gydy7gasy7gdsyag7gyas7dy7gasdyg7sagd7sa/asd76tg6t7gdsagt67ydsa6tg7ydsag7yt6dsa7gyhdas7gydy7gasy7gdsyag7gyas7dy7gasdyg7sagd7sa/a"))()
                 ]])
             end
+
             notify("Server Hop", "Found " .. #servers .. " server(s)!")
             TeleportService:TeleportToPlaceInstance(
                 PlaceId,
@@ -405,10 +412,9 @@ local function serverHop()
             )
             return
         end
-        notify("Server Hop", "No servers found (" .. attempt .. "/10)")
+
         task.wait(0.5)
     end
-    notify("Server Hop", "Failed to find a server with ≤10 players.")
 end
 
 local lastPositions = {}
