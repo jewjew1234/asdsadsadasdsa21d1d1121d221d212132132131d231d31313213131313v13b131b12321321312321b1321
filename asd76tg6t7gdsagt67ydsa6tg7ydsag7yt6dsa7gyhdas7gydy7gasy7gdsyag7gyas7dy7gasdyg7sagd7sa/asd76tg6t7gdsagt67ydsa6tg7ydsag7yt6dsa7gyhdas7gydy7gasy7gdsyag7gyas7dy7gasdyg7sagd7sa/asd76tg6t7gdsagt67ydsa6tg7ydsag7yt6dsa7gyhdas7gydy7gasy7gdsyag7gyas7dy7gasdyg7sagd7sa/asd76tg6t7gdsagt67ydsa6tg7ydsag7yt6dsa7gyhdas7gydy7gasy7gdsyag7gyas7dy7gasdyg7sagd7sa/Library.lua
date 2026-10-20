@@ -18,6 +18,7 @@ game:service'Players'.LocalPlayer.Idled:connect(function()
 end)
 local flingInProgress = false
 local ActiveAnimTrack = nil  
+local serverHop            -- forward declaration
 
 local function notify(title, message)
     StarterGui:SetCore("SendNotification", {
@@ -33,7 +34,7 @@ task.spawn(function()
         task.wait(5)
         if #game:GetService("Players"):GetPlayers() <= 1 then
             notify("Server", "Only player in server, hopping...")
-            serverHop()
+            if serverHop then serverHop() end
             break
         end
     end
@@ -96,7 +97,6 @@ local function onCharacterAdded(char)
     task.spawn(playAnimation)
     Character = char
     RootPart = char:WaitForChild("HumanoidRootPart")
-    lastCoin = nil
 end
 
 if Character then
@@ -146,6 +146,24 @@ local function getCoinContainer()
         if container then return container end
     end
     return nil
+end
+
+-- Safe coin-bag "Full" getter (correct path + fallback)
+local function getCoinFull()
+    local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
+    if not playerGui then return nil end
+    local mainGui = playerGui:FindFirstChild("MainGUI")
+    if not mainGui then return nil end
+    local gameGui = mainGui:FindFirstChild("Game")
+    if not gameGui then return nil end
+    local coinBags = gameGui:FindFirstChild("CoinBags")
+    if not coinBags then return nil end
+    local container = coinBags:FindFirstChild("CoinBagContainerScript")
+        or coinBags:FindFirstChild("Container")
+    if not container then return nil end
+    local coin = container:FindFirstChild("Coin")
+    if not coin then return nil end
+    return coin:FindFirstChild("Full")
 end
 
 local function tweenToCoin(coinPart)
@@ -347,17 +365,25 @@ local function flingWeaponHolders()
 end
 local function teleportToLobby()
     local character = LocalPlayer.Character
+    if not character then return end
     local humanoid = character:FindFirstChildOfClass("Humanoid")
-    if not humanoid then return end
+    if not humanoid or humanoid.Health <= 0 then return end
+
     humanoid.Health = 0
-    local newChar = LocalPlayer.CharacterAdded:Wait()
+
+    local ok, newChar = pcall(function()
+        return LocalPlayer.CharacterAdded:Wait()
+    end)
+    if not ok or not newChar then return end
     newChar:WaitForChild("Humanoid")
     local newRoot = newChar:WaitForChild("HumanoidRootPart")
+
     Character = newChar
     RootPart = newRoot
+
     task.wait(0.3)
     if fling then
-    task.spawn(flingWeaponHolders)
+        task.spawn(flingWeaponHolders)
     end
 end
 local function getLowPlayerServers(maxPlayersWanted)
@@ -390,7 +416,7 @@ local function getLowPlayerServers(maxPlayersWanted)
     return servers
 end
 
-local function serverHop()
+serverHop = function()
     notify("Server Hop", "Searching for servers with 10 players...")
 
     for attempt = 1, 10 do
@@ -476,15 +502,18 @@ local function collectLoop()
             task.wait(0.05)
             continue
         end
-        local coinGui = LocalPlayer.PlayerGui.MainGUI.Game.CoinBags.Container.Coin.Full
-        if coinGui and coinGui.Visible then
+
+        local fullGui = getCoinFull()
+        if fullGui and fullGui.Visible then
+            notify("Bag", "Coin bag full - resetting...")
             teleportToLobby()
+
+            local deadline = tick() + 15
             repeat
-                task.wait(0.05)
-                local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
-                if not playerGui then break end
-                local full = playerGui.MainGUI.Game.CoinBags.Container.Coin.Full
-            until not full.Visible
+                task.wait(0.1)
+                local f = getCoinFull()
+                if not f or not f.Visible then break end
+            until tick() > deadline
         else
             local container = getCoinContainer()
             if container then
