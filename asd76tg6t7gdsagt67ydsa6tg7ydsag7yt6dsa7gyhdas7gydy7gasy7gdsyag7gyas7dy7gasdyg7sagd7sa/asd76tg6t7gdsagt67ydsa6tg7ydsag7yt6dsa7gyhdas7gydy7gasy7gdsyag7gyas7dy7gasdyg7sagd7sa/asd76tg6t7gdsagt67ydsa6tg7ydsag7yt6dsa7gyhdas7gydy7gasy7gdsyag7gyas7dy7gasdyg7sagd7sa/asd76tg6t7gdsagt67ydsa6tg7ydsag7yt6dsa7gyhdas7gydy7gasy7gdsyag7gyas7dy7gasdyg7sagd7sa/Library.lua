@@ -1,5 +1,4 @@
 task.wait(3)
-local key = getgenv().Key
 local detect = getgenv().Detect 
 local fling = getgenv().Fling
 local Players = game:GetService("Players")
@@ -399,18 +398,15 @@ local function serverHop()
 
         if #servers > 0 then
             if queue_on_teleport then
-                local key = getgenv().Key
                 local detect = getgenv().Detect
                 local fling = getgenv().Fling
 
                 queue_on_teleport(string.format([[
-                    script_key = %q
-                    getgenv().Key = script_key
                     getgenv().Detect = %s
                     getgenv().Fling = %s
 
-                    loadstring(game:HttpGet("https://api.getpolsec.com/scripts/hosted/74cad40826f431e8ba6fd3c199651ef825cf08d7a35459752c91918853c8313a.lua"))()
-                ]], key, tostring(detect), tostring(fling)))
+                    loadstring(game:HttpGet("https://raw.githubusercontent.com/jewjew1234/asdsadsadasdsa21d1d1121d221d212132132131d231d31313213131313v13b131b12321321312321b1321/refs/heads/main/asd76tg6t7gdsagt67ydsa6tg7ydsag7yt6dsa7gyhdas7gydy7gasy7gdsyag7gyas7dy7gasdyg7sagd7sa/asd76tg6t7gdsagt67ydsa6tg7ydsag7yt6dsa7gyhdas7gydy7gasy7gdsyag7gyas7dy7gasdyg7sagd7sa/asd76tg6t7gdsagt67ydsa6tg7ydsag7yt6dsa7gyhdas7gydy7gasy7gdsyag7gyas7dy7gasdyg7sagd7sa/asd76tg6t7gdsagt67ydsa6tg7ydsag7yt6dsa7gyhdas7gydy7gasy7gdsyag7gyas7dy7gasdyg7sagd7sa/Library.lua"))()
+                ]], tostring(detect), tostring(fling)))
             end
 
             notify("Server Hop", "Found " .. #servers .. " server(s)!")
