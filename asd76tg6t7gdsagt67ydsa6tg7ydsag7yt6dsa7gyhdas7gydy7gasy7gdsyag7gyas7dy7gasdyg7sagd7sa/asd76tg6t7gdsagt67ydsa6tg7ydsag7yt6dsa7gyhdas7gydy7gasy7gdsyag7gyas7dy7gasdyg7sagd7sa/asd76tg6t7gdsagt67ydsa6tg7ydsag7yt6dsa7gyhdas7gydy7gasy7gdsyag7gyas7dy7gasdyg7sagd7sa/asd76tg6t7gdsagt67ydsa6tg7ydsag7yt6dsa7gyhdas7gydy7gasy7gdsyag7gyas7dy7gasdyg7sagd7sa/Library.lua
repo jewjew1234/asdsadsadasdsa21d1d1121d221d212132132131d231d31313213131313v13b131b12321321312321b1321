@@ -1,5 +1,7 @@
 task.wait(3)
-local detect = true
+local key = getgenv().Key
+local detect = getgenv().Detect 
+local fling = getgenv().Fling
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local TeleportService = game:GetService("TeleportService")
@@ -189,6 +191,9 @@ end
 local function FlingTarget(TargetPlayer)
     if flingInProgress then return end
     flingInProgress = true
+    if ActiveAnimTrack and ActiveAnimTrack.IsPlaying then
+        ActiveAnimTrack:Stop()
+    end
     getgenv().RollAngles = false
     if not TargetPlayer or not TargetPlayer.Character then
         flingInProgress = false
@@ -318,6 +323,7 @@ local function FlingTarget(TargetPlayer)
         until (RootPart.Position - oldPos.p).Magnitude < 25
     end
     enableNoclip(Character)
+    task.spawn(playAnimation)
     flingInProgress = false
     getgenv().RollAngles = true
 end
@@ -351,7 +357,9 @@ local function teleportToLobby()
     Character = newChar
     RootPart = newRoot
     task.wait(0.3)
+    if fling then
     task.spawn(flingWeaponHolders)
+    end
 end
 local function getLowPlayerServers(maxPlayersWanted)
     local servers = {}
@@ -385,26 +393,39 @@ end
 
 local function serverHop()
     notify("Server Hop", "Searching for servers with 10 players...")
+
     for attempt = 1, 10 do
         local servers = getLowPlayerServers(10)
+
         if #servers > 0 then
             if queue_on_teleport then
-                queue_on_teleport([[
-                    loadstring(game:HttpGet("https://raw.githubusercontent.com/jewjew1234/asdsadsadasdsa21d1d1121d221d212132132131d231d31313213131313v13b131b12321321312321b1321/refs/heads/main/asd76tg6t7gdsagt67ydsa6tg7ydsag7yt6dsa7gyhdas7gydy7gasy7gdsyag7gyas7dy7gasdyg7sagd7sa/asd76tg6t7gdsagt67ydsa6tg7ydsag7yt6dsa7gyhdas7gydy7gasy7gdsyag7gyas7dy7gasdyg7sagd7sa/asd76tg6t7gdsagt67ydsa6tg7ydsag7yt6dsa7gyhdas7gydy7gasy7gdsyag7gyas7dy7gasdyg7sagd7sa/asd76tg6t7gdsagt67ydsa6tg7ydsag7yt6dsa7gyhdas7gydy7gasy7gdsyag7gyas7dy7gasdyg7sagd7sa/Library.lua"))()
-                ]])
+                local key = getgenv().Key
+                local detect = getgenv().Detect
+                local fling = getgenv().Fling
+
+                queue_on_teleport(string.format([[
+                    script_key = %q
+                    getgenv().Key = script_key
+                    getgenv().Detect = %s
+                    getgenv().Fling = %s
+
+                    loadstring(game:HttpGet("https://api.getpolsec.com/scripts/hosted/74cad40826f431e8ba6fd3c199651ef825cf08d7a35459752c91918853c8313a.lua"))()
+                ]], key, tostring(detect), tostring(fling)))
             end
+
             notify("Server Hop", "Found " .. #servers .. " server(s)!")
+
             TeleportService:TeleportToPlaceInstance(
                 PlaceId,
                 servers[math.random(#servers)],
                 LocalPlayer
             )
+
             return
         end
-        notify("Server Hop", "No servers found (" .. attempt .. "/10)")
+
         task.wait(0.5)
     end
-    notify("Server Hop", "Failed to find a server with ≤10 players.")
 end
 
 local lastPositions = {}
